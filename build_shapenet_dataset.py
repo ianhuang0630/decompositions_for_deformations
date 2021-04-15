@@ -18,8 +18,7 @@ from random import shuffle
 # DATADIR = "/orion/group/ShapeNetCore.v2/"
 DATADIR = "/orion/group/ShapeNetManifold_10000"
 
-#info = {'Height': 254, 'Width': 254, 'fx':575, 'fy':575, 'cx': 319.5, 'cy': 239.5}
-info = {'Height': 256, 'Width': 256, 'fx':575, 'fy':575, 'cx': 127.5, 'cy': 127.5}
+info = {'Height': 224, 'Width': 224, 'fx':575, 'fy':575, 'cx': 111.5, 'cy': 111.5}
 render.setup(info)
 
 TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords/"
@@ -34,7 +33,7 @@ if __name__=='__main__':
     num_surface_samples = 1024
     num_bbox_samples = 1024
 
-    num_views = 3
+    num_views = 24
 
     synsets = [el for el in os.listdir(DATADIR) if os.path.isdir(os.path.join(DATADIR, el))]
     synset_paths = [os.path.join(DATADIR, el) for el in synsets]
@@ -106,10 +105,10 @@ if __name__=='__main__':
             # for depth
             # how many depth views?
             # 1024 -> 32 samples around, 32 samples up and down
-            thetas = np.linspace(0, np.pi, 32+2)
+            thetas = np.linspace(0, np.pi, 5+2)
             thetas = thetas[1:-1] # cutting off the ends
-            phis = np.linspace(0, 2*np.pi, 32)
-            r = 4 * max_norm
+            phis = np.linspace(0, 2*np.pi, 4)
+            r = 6 * max_norm
             # sampling points on a sphere around the object
             depth_views = []
 
@@ -166,7 +165,7 @@ if __name__=='__main__':
 
 
             # NOTE: Assume that RGB information is irrelevant for our purposes.
-            rgb = np.zeros((num_views, 256, 256, 3)).astype(np.int64) # views, h, w, d
+            rgb = np.zeros((num_views, 137, 137, 3)).astype(np.int64) # views, h, w, d
 
             depth_views = np.array(depth_views)
             # flatten: for each model
@@ -207,25 +206,5 @@ if __name__=='__main__':
         f_train_record.close()
         f_test_record.close()
 
-
-        # getting training data first
-        # rgb_flat = np.array([el['rgb'] for el in this_class_train]).reshape(-1)
-        # depth_flat = np.array([el['depth'] for el in this_class_train]).reshape(-1)
-        # bbox_samples_flat = np.array([el['bbox'] for el in this_class_train]).reshape(-1)
-        # surf_samples_flat = np.array([el['surf'] for el in this_class_train]).reshape(-1)
-        # names_flat = np.array([el['name'] for el in this_class_train]).reshape(-1)
-        # data_dict = {'rgb': rgb_flat,
-        #              'depth': depth_flat,
-        #              'bbox_samples': bbox_samples_flat,
-        #              'surf_samples': surf_samples_flat,
-        #              'name': names_flat}
-        # cvxnet_style_tfrecords(data_dict,
-        #                        os.path.join(TARGETDIR,
-        #                                     '{}-{}-data.tfrecords'.
-        #                                     format(synset_id, "train")))
-
-        # now saving testing data
-
     render.Clear()
-    pass
 
