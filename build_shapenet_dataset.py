@@ -21,12 +21,49 @@ DATADIR = "/orion/group/ShapeNetManifold_10000"
 info = {'Height': 224, 'Width': 224, 'fx':575, 'fy':575, 'cx': 111.5, 'cy': 111.5}
 render.setup(info)
 
-TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords/"
+# TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords/"
+# TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords_v3/"
+TARGETDIR = "/tmp/cvxstyle_tfrecords_debug/"
+
+# CHECKDIR = "/orion/u/ianhuang/cvxstyle_depth_v4/"
+
+
+synset_classes = {
+    '02691156': 'airplane', '02773838': 'bag', '02801938': 'basket',
+    '02808440': 'bathtub', '02818832': 'bed', '02828884': 'bench',
+    '02876657': 'bottle', '02880940': 'bowl', '02924116': 'bus',
+    '02933112': 'cabinet', '02747177': 'can', '02942699': 'camera',
+    '02954340': 'cap', '02958343': 'car', '03001627': 'chair',
+    '03046257': 'clock', '03207941': 'dishwasher', '03211117': 'monitor',
+    '04379243': 'table', '04401088': 'telephone', '02946921': 'tin_can',
+    '04460130': 'tower', '04468005': 'train', '03085013': 'keyboard',
+    '03261776': 'earphone', '03325088': 'faucet', '03337140': 'file',
+    '03467517': 'guitar', '03513137': 'helmet', '03593526': 'jar',
+    '03624134': 'knife', '03636649': 'lamp', '03642806': 'laptop',
+    '03691459': 'speaker', '03710193': 'mailbox', '03759954': 'microphone',
+    '03761084': 'microwave', '03790512': 'motorcycle', '03797390': 'mug',
+    '03928116': 'piano', '03938244': 'pillow', '03948459': 'pistol',
+    '03991062': 'pot', '04004475': 'printer', '04074963': 'remote_control',
+    '04090263': 'rifle', '04099429': 'rocket', '04225987': 'skateboard',
+    '04256520': 'sofa', '04330267': 'stove', '04530566': 'vessel',
+    '04554684': 'washer', '02992529': 'cellphone',
+    '02843684': 'birdhouse', '02871439': 'bookshelf',
+    # '02858304': 'boat', no boat in our dataset, merged into vessels
+    # '02834778': 'bicycle', not in our taxonomy
+}
+
+
 
 import tensorflow as tf
 
 if not os.path.exists(TARGETDIR):
     os.makedirs(TARGETDIR)
+
+#if CHECKDIR is not None:
+#    if not os.path.exists(CHECKDIR):
+#        os.makedirs(CHECKDIR)
+
+extra_small = False
 
 if __name__=='__main__':
 
@@ -48,6 +85,11 @@ if __name__=='__main__':
         model_ids = [el for el in os.listdir(synset_path) if os.path.isdir(os.path.join(synset_path, el))]
         model_paths = [os.path.join(synset_path, el) for el in model_ids]
 
+        if extra_small:
+            print("EXTRA SMALL DATASET")
+            model_paths = model_paths[:20]
+            model_ids = model_ids[:20]
+
         shuffle(model_paths)
         status = ['train']*int(0.8 * len(model_paths))
         status += ['test']*(len(model_paths) - len(status))
@@ -58,11 +100,10 @@ if __name__=='__main__':
         # opening the writer
         f_train_record = tf.io.TFRecordWriter(os.path.join(TARGETDIR,
                                                            "{}-{}-data.tfrecords".
-                                                           format(synset_id, "train")))
+                                                           format(synset_classes[synset_id], "train")))
         f_test_record = tf.io.TFRecordWriter(os.path.join(TARGETDIR,
                                                           "{}-{}-data.tfrecords".
-                                                          format(synset_id, "test")))
-
+                                                          format(synset_classes[synset_id], "test")))
 
         for model_idx, model_path in enumerate(model_paths):
             obj_dir = os.path.join(model_path, 'models')
@@ -159,30 +200,39 @@ if __name__=='__main__':
                     depth = depth / np.max(depth)
 
                     # saving depth
-                    # sio.imsave('depth_t{}_p{}.png'.format(theta, phi), img_as_ubyte(depth))
+                    # TODO: save it for verfication purposes
+                    # save at CHECKDIR/{class}/{train or validation}/{model_id}/
+                    # depth_save_dir = os.path.join(CHECKDIR, synset_classes[synset_id])
+                    # depth_save_dir = os.path.join(depth_save_dir, status[model_idx])
+                    # depth_save_dir = os.path.join(depth_save_dir,
+                    #                               os.path.basename(model_path))
+                    # if not os.path.exists(depth_save_dir):
+                    #     os.makedirs(depth_save_dir)
+                    # sio.imsave(os.path.join(
+                    #     depth_save_dir,
+                    #     'depth_t{}_p{}.png'.format(theta, phi)),
+                    #            img_as_ubyte(depth))
                     depth_views.append(depth)
 
 
 
             # NOTE: Assume that RGB information is irrelevant for our purposes.
-            rgb = np.zeros((num_views, 137, 137, 3)).astype(np.int64) # views, h, w, d
+            rgb = np.zeros((num_views, 137, 137, 3)).astype(np.float32) # views, h, w, d
 
             depth_views = np.array(depth_views)
-            # flatten: for each model
-            # put dat in a tfexample, put that into a tf.record.
-            # data_dictionary = {'rgb': rgb.reshape(-1),
-            #                    'depth': np.array(depth_views).reshape(-1),
-            #                    'bbox': bbox_samples.reshape(-1),
-            #                    'surf': surf_samples.reshape(-1),
-            #                    'name': os.path.basename(os.path.dirname(model_path))}
 
+            classname = synset_classes[os.path.basename(os.path.dirname(model_path))]
+            objname = os.path.basename(model_path)
+            name = "{}-{}".format(classname, objname)
+
+            import ipdb; ipdb.set_trace()
             example = tf.train.Example(features =
                                        tf.train.Features(feature =
-                                                         {'rgb': tf.train.Feature(int64_list=tf.train.Int64List(value=rgb.reshape(-1))),
+                                                         {'rgb': tf.train.Feature(float_list=tf.train.FloatList(value=rgb.reshape(-1))),
                                                           'depth': tf.train.Feature(float_list=tf.train.FloatList(value=depth_views.reshape(-1))),
                                                           'bbox_samples': tf.train.Feature(float_list=tf.train.FloatList(value=bbox_samples.reshape(-1))),
                                                           'surf_samples': tf.train.Feature(float_list=tf.train.FloatList(value=surf_samples.reshape(-1))),
-                                                          'name': tf.train.Feature(bytes_list=tf.train.BytesList(value=[bytes(os.path.basename(os.path.dirname(model_path)),
+                                                          'name': tf.train.Feature(bytes_list=tf.train.BytesList(value=[bytes(name,
                                                                                                  encoding='utf-8')]))
                                                          }
                                        ))
