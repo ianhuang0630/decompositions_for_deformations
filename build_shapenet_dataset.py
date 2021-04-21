@@ -22,8 +22,8 @@ info = {'Height': 224, 'Width': 224, 'fx':575, 'fy':575, 'cx': 111.5, 'cy': 111.
 render.setup(info)
 
 # TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords/"
-# TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords_v3/"
-TARGETDIR = "/tmp/cvxstyle_tfrecords_debug/"
+TARGETDIR = "/orion/u/ianhuang/cvxstyle_tfrecords_v4/"
+# TARGETDIR = "/tmp/cvxstyle_tfrecords_debug/"
 
 # CHECKDIR = "/orion/u/ianhuang/cvxstyle_depth_v4/"
 
@@ -132,9 +132,17 @@ if __name__=='__main__':
 
             # bounding box sampling: assuming bounding box tightly fits the vertex
             bounding_box_min, bounding_box_max = np.min(V, axis=0), np.max(V, axis=0)
+            # NOTE: to balance out the sampling, sample 1.5 x the original range
+
+            bbox_dimensions = bounding_box_max - bounding_box_min
+            bbox_dimensions = 0.13*bbox_dimensions
+            bounding_box_min = bounding_box_min - bbox_dimensions
+            bounding_box_max = bounding_box_max + bbox_dimensions
+
             x_samples = np.random.uniform(bounding_box_min[0], bounding_box_max[0], num_bbox_samples)
             y_samples = np.random.uniform(bounding_box_min[1], bounding_box_max[1], num_bbox_samples)
             z_samples = np.random.uniform(bounding_box_min[2], bounding_box_max[2], num_bbox_samples)
+
             bbox_coord = np.vstack((x_samples, y_samples, z_samples)).transpose()
             signed_bbox_distances = proximityquery.signed_distance(bbox_coord)
             bbox_samples = np.hstack((bbox_coord,
@@ -225,7 +233,6 @@ if __name__=='__main__':
             objname = os.path.basename(model_path)
             name = "{}-{}".format(classname, objname)
 
-            import ipdb; ipdb.set_trace()
             example = tf.train.Example(features =
                                        tf.train.Features(feature =
                                                          {'rgb': tf.train.Feature(float_list=tf.train.FloatList(value=rgb.reshape(-1))),
